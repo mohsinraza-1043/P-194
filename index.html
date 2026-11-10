@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P194 Robotics Simulator Demo</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#eef5f1;--card:#fff;--tx:#0b2420;--mu:#587069;--ac:#16875a;--on:#fff;--hd:#0a2e2a;--bd:#d3e2db;--bad:#b83224;--warn:#9a6b0b;--hl:#e3f3ea;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#061714;--card:#0d2823;--tx:#e4f2ec;--mu:#8cb0a5;--ac:#3dbb7e;--on:#04241a;--hd:#04100e;--bd:#1d443b;--bad:#ff8c7c;--warn:#f0c36a;--hl:#123a31;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#061714;--card:#0d2823;--tx:#e4f2ec;--mu:#8cb0a5;--ac:#3dbb7e;--on:#04241a;--hd:#04100e;--bd:#1d443b;--bad:#ff8c7c;--warn:#f0c36a;--hl:#123a31;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 Georgia,"Iowan Old Style",serif}
+h1,h2,h3,button,select,input,textarea,.chip,th,.tab{font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif}
+header{background:var(--hd);color:#e4f2ec;padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:18px;letter-spacing:.2px}header small{color:#8cb0a5;display:block;font-family:Georgia,serif}
+select,input,textarea{font-size:14px;padding:7px 9px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx);max-width:100%}
+input[type=number]{width:78px}input[type=text]{width:100%}textarea{width:100%;min-height:54px}
+main{max-width:980px;margin:0 auto;padding:12px}
+.steps{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px}
+.chip{white-space:nowrap;font-size:12px;padding:4px 9px;border-radius:99px;border:1px solid var(--bd);background:var(--card);color:var(--mu)}
+.chip.on{background:var(--ac);color:var(--on);border-color:var(--ac)}.chip.bad{border-color:var(--bad);color:var(--bad)}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--bd);margin-bottom:12px;overflow-x:auto}
+.tab{padding:9px 14px;border:0;background:none;color:var(--mu);font-size:14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+.tab.on{color:var(--tx);border-bottom-color:var(--ac);font-weight:700}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}
+.card h2{font-size:16px;margin:0 0 8px}.card h3{font-size:14px;margin:10px 0 4px}
+.g{display:grid;gap:12px;grid-template-columns:1fr 1fr}@media(max-width:760px){.g{grid-template-columns:1fr}}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+label{font-size:13px;color:var(--mu);display:flex;flex-direction:column;gap:3px}
+button.b{background:var(--ac);color:var(--on);border:0;padding:9px 14px;border-radius:7px;font-weight:700;font-size:14px;cursor:pointer}
+button.b.s{background:none;color:var(--ac);border:1px solid var(--ac)}button.b.d{background:none;color:var(--bad);border:1px solid var(--bad)}
+button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,select:focus-visible,input:focus-visible,.tab:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+canvas{width:100%;height:auto;border-radius:8px;display:block;border:1px solid var(--bd)}
+.msg{padding:9px 12px;border-radius:8px;margin-bottom:10px;background:var(--hl);border:1px solid var(--ac);font-size:14px}.msg.bad{border-color:var(--bad);color:var(--bad);background:var(--card)}
+.blk{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--hl);border-left:4px solid var(--ac);padding:6px 8px;border-radius:6px;margin:5px 0;font-size:14px}
+.blk.x{border-color:var(--bad)}.blk span{font-family:"Trebuchet MS",system-ui,sans-serif}.blk .del{margin-left:auto}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd)}
+tr.sel{background:var(--hl)}.mu{color:var(--mu);font-size:13px}.ok{color:var(--ac);font-weight:700}.no{color:var(--bad);font-weight:700}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--hl);padding:1px 5px;border-radius:4px}
+</style></head><body>
+<header><div><h1>P194 Robotics Simulation</h1><small>Classroom workflow demo. Synthetic accounts only.</small></div>
+<label style="color:#8cb0a5">Signed in as <select id="who" onchange="setUser(this.value)"></select></label></header>
+<main><div class="steps" id="steps"></div><div id="app"></div>
+<p class="mu">Demo note: the module called Server below runs inside this page so the demo works offline. In the real build it becomes a backend API, with the same checks and the same simulation code.</p></main>
+<script>
+const $=s=>document.querySelector(s),PI=Math.PI;
+const S={revs:[],students:[["s1","Ayesha"],["s2","Bilal"],["s3","Sara"]],enr:{s1:true,s2:true,s3:false},runs:[],last:{},atts:[],audit:[],prog:{s1:[],s2:[],s3:[]},val:false,
+draft:{title:"Stop at the wall, then turn north",wallX:220,min:10,max:25,hd:90,tol:10}};
+const V={role:"teacher",sid:"s1",tab:"lesson",sel:null,msg:"",bad:false};let CVD=null,RAF=0;
+const NAME=id=>(S.students.find(s=>s[0]==id)||[0,id])[1];
+const log=(who,what,ok=true)=>S.audit.unshift({t:new Date().toLocaleTimeString(),who,what,ok});
+const actor=()=>V.role=="teacher"?{role:"teacher",id:"teacher1"}:{role:"student",id:V.sid};
+const deny=(a,w)=>{log(a.id,w+": 403 denied",false);return{ok:false,err:"403: "+a.role+" accounts are not allowed to do this ("+w+")."}};
+/* ---------- program blocks (typed, allow-listed) ---------- */
+const BLK={move:{def:{cm:50},p:["Move forward",["cm"],"cm"]},turn:{def:{deg:90},p:["Turn",["deg"],"degrees (+ left, − right)"]},
+wait:{def:{s:1},p:["Wait",["s"],"seconds"]},until_near:{def:{thr:15},p:["Move forward until front distance is below",["thr"],"cm"]},
+if_near:{def:{thr:30,deg:90},p:["If front distance is below",["thr"],"cm, turn",["deg"],"degrees"]},
+repeat:{def:{n:2,cm:20,deg:90},p:["Repeat",["n"],"times: move",["cm"],"cm, turn",["deg"],"degrees"]}};
+const RNG={cm:[1,300],deg:[-180,180],s:[0,10],thr:[5,200],n:[1,8]};
+const txt=b=>BLK[b.type]?BLK[b.type].p.map(x=>Array.isArray(x)?b[x[0]]:x).join(" "):b.type+" (forbidden)";
+function validate(p){const e=[];if(!Array.isArray(p)||!p.length)return["Program is empty."];if(p.length>20)e.push("Max 20 blocks.");
+p.forEach((b,i)=>{if(!BLK[b.type]){e.push("Block "+(i+1)+": “"+b.type+"” is not an allowed command.");return}
+for(const k in BLK[b.type].def){const v=b[k],r=RNG[k];if(!Number.isFinite(v)||v<r[0]||v>r[1])e.push("Block "+(i+1)+": "+k+" must be "+r[0]+" to "+r[1]+".")}});return e}
+/* ---------- deterministic simulator: 2D differential drive, fixed step ---------- */
+function simulate(c,prog){const dt=.05,SP=20,L=10,R=8,W=300,H=200,wl={x1:c.wallX,x2:c.wallX+10,y1:50,y2:150},D=PI/180;
+let x=30,y=100,th=0,t=0,n=0,term="completed";const tr=[[0,x,y,0]];
+const gap=(px,py)=>Math.hypot(px-Math.max(wl.x1,Math.min(wl.x2,px)),py-Math.max(wl.y1,Math.min(wl.y2,py)))-R;
+function sense(){const cs=Math.cos(th*D),sn=Math.sin(th*D);let d=400;
+if(cs>1e-9)d=Math.min(d,(W-x)/cs);if(cs<-1e-9)d=Math.min(d,-x/cs);if(sn>1e-9)d=Math.min(d,(H-y)/sn);if(sn<-1e-9)d=Math.min(d,-y/sn);
+if(cs>1e-9){const k=(wl.x1-x)/cs,yy=y+sn*k;if(k>=0&&yy>=wl.y1&&yy<=wl.y2)d=Math.min(d,k)}return Math.max(0,d-R)}
+function step(vl,vr,s){const v=(vl+vr)/2,w=(vr-vl)/L;th+=w*s/D;x+=v*Math.cos(th*D)*s;y+=v*Math.sin(th*D)*s;t+=s;n++;
+tr.push([+t.toFixed(2),+x.toFixed(2),+y.toFixed(2),+th.toFixed(1)]);
+if(gap(x,y)<0||x<R||y<R||x>W-R||y>H-R){term="collision";return false}if(n>=4000){term="step_limit";return false}return true}
+const move=d=>{let a=0;while(a<d-1e-9){const s=Math.min(dt,(d-a)/SP);if(!step(SP,SP,s))return false;a+=SP*s}return true};
+const turn=d=>{const g=Math.sign(d),m=Math.abs(d),vv=PI/2*L/2;let a=0;while(a<m-1e-9){const s=Math.min(dt,(m-a)/90);if(!step(-g*vv,g*vv,s))return false;a+=90*s}return true};
+const wait=s=>{for(let i=0;i<Math.ceil(s/dt);i++)if(!step(0,0,dt))return false;return true};
+for(const b of prog){let ok=true;
+if(b.type=="move")ok=move(b.cm);else if(b.type=="turn")ok=turn(b.deg);else if(b.type=="wait")ok=wait(b.s);
+else if(b.type=="until_near"){while(sense()>b.thr&&ok)ok=step(SP,SP,dt)}
+else if(b.type=="if_near"){if(sense()<b.thr)ok=turn(b.deg)}
+else if(b.type=="repeat"){for(let i=0;i<b.n&&ok;i++)ok=move(b.cm)&&turn(b.deg)}
+if(!ok)break}
+let mg=1e9;tr.forEach(p=>mg=Math.min(mg,gap(p[1],p[2])));mg=+mg.toFixed(1);
+const hd=((tr[tr.length-1][3]%360)+360)%360,df=Math.abs(((hd-c.hd+540)%360)-180);
+const A=mg>=c.min&&mg<=c.max&&term=="completed",B=df<=c.tol&&term=="completed";
+return{tr,term,steps:n,mg,hd:+hd.toFixed(1),A,B,auto:(A?40:0)+(B?30:0),usedSensor:prog.some(b=>b.type=="until_near"||b.type=="if_near")}}
+function digest(o){let h=2166136261;const s=JSON.stringify(o);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,"0")}
+/* ---------- Server (mock): every action checks role, enrollment, versions ---------- */
+const API={
+publish(a,c){if(a.role!="teacher")return deny(a,"publish lesson");const e=[];
+if(!c.title.trim())e.push("Add a lesson title.");if(!(c.wallX>=100&&c.wallX<=270))e.push("Wall distance must be 100 to 270 cm.");
+if(!(c.min>=3&&c.max>c.min&&c.max<=80))e.push("Safe zone needs min 3 or more, and max above min (80 at most).");if(!(c.tol>=1&&c.tol<=45))e.push("Tolerance must be 1 to 45 degrees.");
+if(e.length)return{ok:false,err:e.join(" ")};const r={...c,n:S.revs.length+1};S.revs.push(r);log(a.id,"published lesson revision r"+r.n);return{ok:true}},
+enroll(a,sid,on){if(a.role!="teacher")return deny(a,"change enrollment");S.enr[sid]=on;log(a.id,(on?"enrolled ":"removed ")+NAME(sid));return{ok:true}},
+run(a,prog){if(a.role!="student")return deny(a,"run program");if(!S.enr[a.id])return deny(a,"run program, not enrolled");
+const rv=S.revs[S.revs.length-1];if(!rv)return{ok:false,err:"No lesson is published yet."};
+const e=validate(prog);if(e.length){log(a.id,"program rejected by validator",false);return{ok:false,err:"Program rejected. "+e.join(" ")}}
+S.val=true;const cfg={...rv},r=simulate(cfg,prog),run={id:S.runs.length,sid:a.id,rev:rv.n,cfg,prog:JSON.parse(JSON.stringify(prog)),r,digest:digest({cfg,prog,t:r.tr})};
+S.runs.push(run);S.last[a.id]=run.id;log(a.id,"preview run on r"+rv.n+" ended: "+r.term+", digest "+run.digest);return{ok:true,run}},
+submit(a){if(a.role!="student")return deny(a,"submit");if(!S.enr[a.id])return deny(a,"submit, not enrolled");const run=S.runs[S.last[a.id]];
+if(!run)return{ok:false,err:"Run your program first. Only a completed run can be submitted."};const key=a.id+"|"+run.digest;
+const old=S.atts.find(x=>x.key==key);if(old)return{ok:true,dup:true,att:old};
+const att={id:"A"+(S.atts.length+1),key,sid:a.id,run,n:S.atts.filter(x=>x.sid==a.id).length+1,concept:null,note:"",reviewed:false,released:false,corr:[]};
+S.atts.push(att);log(a.id,"submitted attempt "+att.id+" pinned to r"+run.rev+", digest "+run.digest);return{ok:true,att}},
+review(a,id,c,note,why){if(a.role!="teacher")return deny(a,"review");const t=S.atts.find(x=>x.id==id);
+if(!Number.isInteger(c)||c<0||c>30)return{ok:false,err:"Concept score must be a whole number from 0 to 30."};
+if(t.released){if(!why.trim())return{ok:false,err:"This grade is released. Give a reason to correct it."};t.corr.push({by:a.id,from:t.concept,to:c,why,ev:t.run.digest});log(a.id,"corrected "+id+": "+t.concept+" to "+c+" ("+why+")")}
+else log(a.id,"reviewed "+id+", concept score "+c);t.concept=c;t.note=note;t.reviewed=true;return{ok:true}},
+release(a,id){if(a.role!="teacher")return deny(a,"release grade");const t=S.atts.find(x=>x.id==id);if(!t.reviewed)return{ok:false,err:"Review the attempt before releasing."};
+t.released=true;log(a.id,"released grade for "+id);return{ok:true}}};
+/* ---------- drawing ---------- */
+function draw(cv,c,tr,i){const g=cv.getContext("2d"),k=cv.width/300,cs=getComputedStyle(document.documentElement),V_=n=>cs.getPropertyValue(n).trim(),R=8;
+g.fillStyle=V_("--card");g.fillRect(0,0,cv.width,cv.height);g.strokeStyle=V_("--bd");g.lineWidth=1;
+for(let q=50;q<300;q+=50){g.beginPath();g.moveTo(q*k,0);g.lineTo(q*k,200*k);g.stroke()}for(let q=50;q<200;q+=50){g.beginPath();g.moveTo(0,q*k);g.lineTo(300*k,q*k);g.stroke()}
+g.fillStyle=V_("--ac");g.globalAlpha=.22;g.fillRect((c.wallX-R-c.max)*k,50*k,(c.max-c.min)*k,100*k);g.globalAlpha=1;
+g.fillStyle=V_("--bad");g.fillRect(c.wallX*k,50*k,10*k,100*k);
+g.strokeStyle=V_("--ac");g.lineWidth=2;g.beginPath();tr.slice(0,i+1).forEach((p,j)=>{j?g.lineTo(p[1]*k,(200-p[2])*k):g.moveTo(p[1]*k,(200-p[2])*k)});g.stroke();
+const p=tr[i],a=p[3]*PI/180;g.fillStyle=V_("--hd");g.beginPath();g.arc(p[1]*k,(200-p[2])*k,R*k,0,7);g.fill();
+g.strokeStyle="#f0c36a";g.lineWidth=3;g.beginPath();g.moveTo(p[1]*k,(200-p[2])*k);g.lineTo((p[1]+R*Math.cos(a))*k,(200-p[2]-R*Math.sin(a))*k);g.stroke();
+g.fillStyle=V_("--mu");g.font=(11*k)+"px sans-serif";g.fillText("wall",c.wallX*k,44*k);g.fillText("safe zone",(c.wallX-R-c.max)*k,160*k+10)}
+function play(){cancelAnimationFrame(RAF);const cv=$("#cv");if(!cv||!CVD)return;let i=0;const n=CVD.tr.length;
+const f=()=>{i=Math.min(n-1,i+2);draw(cv,CVD.cfg,CVD.tr,i);if(i<n-1)RAF=requestAnimationFrame(f)};f()}
+/* ---------- views ---------- */
+const card=(t,b)=>`<section class="card"><h2>${t}</h2>${b}</section>`;
+const goal=c=>`Drive east toward the wall. Stop so the robot edge is ${c.min} to ${c.max} cm from the wall, then turn to face north (${c.hd}° ± ${c.tol}°).`;
+const grade=a=>a.run.r.auto+a.concept;
+function field(b,i,k){return`<input type="number" value="${b[k]}" aria-label="${k}" onchange="P(${i},'${k}',this.value)">`}
+function editor(){const pr=S.prog[V.sid];return pr.map((b,i)=>{const d=BLK[b.type];
+if(!d)return`<div class="blk x"><span>${b.type}("rm -rf /") is not allowed</span><button class="b d s del" onclick="del(${i})">Remove</button></div>`;
+return`<div class="blk">${d.p.map(x=>Array.isArray(x)?field(b,i,x[0]):`<span>${x}</span>`).join("")}<button class="b d s del" onclick="del(${i})" aria-label="Remove block">Remove</button></div>`}).join("")||`<p class="mu">No blocks yet. Add one below, or load an example.</p>`}
+function runCard(run){const r=run.r,c=run.cfg;return`<div class="tw"><table><tr><th>Ended because</th><td>${r.term}</td><th>Steps</th><td>${r.steps}</td></tr>
+<tr><th>Closest gap to wall</th><td>${r.mg} cm ${r.A?'<span class="ok">in safe zone</span>':'<span class="no">outside '+c.min+' to '+c.max+'</span>'}</td><th>Final heading</th><td>${r.hd}° ${r.B?'<span class="ok">on target</span>':'<span class="no">off target</span>'}</td></tr>
+<tr><th>Auto score</th><td>${r.auto}/70</td><th>Evidence digest</th><td><code>${run.digest}</code></td></tr>
+<tr><th>Pinned to</th><td>lesson r${run.rev}</td><th>Engine</th><td>diff-drive v0.1, dt 0.05 s, no random seed</td></tr></table></div>`}
+function studentView(){const sid=V.sid,rv=S.revs[S.revs.length-1];
+if(!S.enr[sid])return card("You are not enrolled",`<p>${NAME(sid)} is not in this class, so the server refuses every run and submission. Switch to the teacher account and enroll this student, then come back.</p><button class="b s" onclick="V.msg='';sneak()">Try to run anyway</button>`);
+if(V.tab=="res")return card("My attempts",S.atts.filter(a=>a.sid==sid).map(a=>`<div class="blk"><span><b>${a.id}</b> (attempt ${a.n}, lesson r${a.run.rev})</span><span>${a.released?'Grade: <b>'+grade(a)+'/100</b>'+(a.note?' · Teacher note: '+a.note:''):'Submitted. Waiting for your teacher to release the grade.'}</span></div>`).join("")||`<p class="mu">Nothing submitted yet.</p>`)+
+card("Security check",`<p class="mu">A student must never release grades. Press the button to see the server refuse it.</p><button class="b d s" onclick="sneakRel()">Try to release my own grade</button>`);
+if(!rv)return card("No lesson yet",`<p>Your teacher has not published a lesson. Switch to the teacher account and press Publish lesson.</p>`);
+const run=S.runs[S.last[sid]];CVD=run?{cfg:run.cfg,tr:run.r.tr}:{cfg:rv,tr:[[0,30,100,0]]};
+const sub=run&&S.atts.find(a=>a.key==sid+"|"+run.digest);
+return`<div class="g"><div>${card("Lesson r"+rv.n+": "+rv.title,`<p>${goal(rv)}</p><canvas id="cv" width="600" height="400" role="img" aria-label="Robot arena with wall and safe zone"></canvas>
+<div class="row"><button class="b s" onclick="play()">Replay</button><span class="mu">Gold line shows the robot’s front.</span></div>`)}</div>
+<div>${card("My program",`<div class="row"><span class="chip ${run?'on':''}">${run?'Run complete':'Draft'}</span><span class="chip ${sub?'on':''}">${sub?'Submitted':'Not submitted'}</span></div>${editor()}
+<div class="row">${Object.keys(BLK).map(t=>`<button class="b s" onclick="add('${t}')">+ ${t.replace("_"," ")}</button>`).join("")}</div>
+<div class="row"><button class="b s" onclick="ex(1)">Load example: fixed move</button><button class="b s" onclick="ex(2)">Load example: use sensor</button><button class="b d s" onclick="add('exec')">Test: forbidden block</button></div>
+<div class="row"><button class="b" onclick="doRun()">Run (preview, not graded)</button><button class="b" ${run?'':'disabled'} onclick="doSub()">Submit attempt</button></div>`)}
+${run?card("Result of last run",runCard(run)):""}</div></div>`}
+function teacherView(){const d=S.draft,t=V.tab;
+if(t=="lesson"){CVD={cfg:d,tr:[[0,30,100,0]]};const f=(k,l,ty="number")=>`<label>${l}<input type="${ty}" value="${d[k]}" onchange="D('${k}',this.value)"></label>`;
+return`<div class="g">${card("Lesson editor (draft)",`<div class="row" style="display:block">${f("title","Lesson title","text")}</div><div class="row">${f("wallX","Wall distance (cm)")}${f("min","Safe gap min (cm)")}${f("max","Safe gap max (cm)")}${f("hd","Target heading (°)")}${f("tol","Tolerance (°)")}</div>
+<p class="mu">Rubric: stopped in the safe zone 40, correct final heading 30, used a sensor block 30 (you decide after reading the program).</p>
+<button class="b" onclick="pub()">Publish lesson</button> <span class="mu">${S.revs.length?'Latest: r'+S.revs.length+'. Publishing again creates r'+(S.revs.length+1)+'; old attempts stay on their own revision.':'Nothing published yet.'}</span>`)}
+${card("Scene preview",`<p>${goal(d)}</p><canvas id="cv" width="600" height="400" role="img" aria-label="Scene preview"></canvas>`)}</div>`}
+if(t=="class")return card("Class roster (synthetic)",`<table><tr><th>Student</th><th>Status</th><th></th></tr>${S.students.map(s=>`<tr><td>${s[1]}</td><td>${S.enr[s[0]]?'<span class="ok">Enrolled</span>':'Not enrolled'}</td><td><button class="b s" onclick="enr('${s[0]}',${!S.enr[s[0]]})">${S.enr[s[0]]?'Remove':'Enroll'}</button></td></tr>`).join("")}</table>`);
+if(t=="aud")return card("Audit log",`<div class="tw"><table><tr><th>Time</th><th>Who</th><th>Event</th></tr>${S.audit.map(a=>`<tr><td>${a.t}</td><td>${a.who}</td><td class="${a.ok?'':'no'}">${a.what}</td></tr>`).join("")||'<tr><td colspan=3>No events yet.</td></tr>'}</table></div>`);
+const at=S.atts.find(a=>a.id==V.sel);
+const list=card("Submitted attempts",`<div class="tw"><table><tr><th>ID</th><th>Student</th><th>Lesson</th><th>Auto</th><th>Status</th></tr>${S.atts.map(a=>`<tr class="${a.id==V.sel?'sel':''}" onclick="V.sel='${a.id}';R()" style="cursor:pointer"><td>${a.id}</td><td>${NAME(a.sid)}</td><td>r${a.run.rev}</td><td>${a.run.r.auto}/70</td><td>${a.released?'Released':a.reviewed?'Reviewed':'To review'}</td></tr>`).join("")||'<tr><td colspan=5>No submissions yet. Sign in as a student, run and submit.</td></tr>'}</table></div><p class="mu">Select a row to open it.</p>`);
+if(!at)return list;CVD={cfg:at.run.cfg,tr:at.run.r.tr};const r=at.run.r,late=S.revs.length>at.run.rev;
+return`${list}<div class="g">${card("Evidence for "+at.id,`${late?`<p class="mu">Lesson is now r${S.revs.length}. This attempt stays on r${at.run.rev} with its original scene.</p>`:""}<canvas id="cv" width="600" height="400"></canvas><div class="row"><button class="b s" onclick="play()">Replay trace</button></div>${runCard(at.run)}`)}
+${card("Program and grade",`${at.run.prog.map(b=>`<div class="blk">${txt(b)}</div>`).join("")}<p>Sensor block used: <b>${r.usedSensor?'yes':'no'}</b>. Auto score ${r.auto}/70.</p>
+<div class="row"><label>Concept score (0 to 30)<input type="number" id="cs" value="${at.concept??''}"></label></div><label>Note for student<textarea id="nt">${at.note}</textarea></label>
+${at.released?`<label>Reason for correction<input type="text" id="why"></label>`:""}
+<div class="row"><button class="b" onclick="rev('${at.id}')">${at.released?'Save correction':'Save review'}</button><button class="b s" ${at.reviewed&&!at.released?'':'disabled'} onclick="rel('${at.id}')">Release grade</button></div>
+${at.reviewed?`<p>Total: <b>${grade(at)}/100</b> ${at.released?'(visible to student)':'(hidden from student until released)'}</p>`:""}
+${at.corr.map(c=>`<p class="mu">Correction by ${c.by}: ${c.from} to ${c.to}. Reason: ${c.why}. Evidence digest ${c.ev}.</p>`).join("")}`)}</div>`}
+/* ---------- controls ---------- */
+const say=(res,ok)=>{V.msg=res.ok?ok:res.err;V.bad=!res.ok};
+function R(){const T=V.role=="teacher"?[["lesson","1. Lesson"],["class","2. Class"],["rev","3. Review"],["aud","Audit log"]]:[["work","Lesson and program"],["res","My results"]];
+if(!T.some(x=>x[0]==V.tab))V.tab=T[0][0];CVD=null;
+const st=[["Lesson published",S.revs.length],["Student enrolled",Object.values(S.enr).some(Boolean)],["Program validated",S.val],["Simulated on server",S.runs.length],["Submitted with trace",S.atts.length],["Teacher reviewed",S.atts.some(a=>a.reviewed)],["Grade released",S.atts.some(a=>a.released)]];
+$("#steps").innerHTML=st.map(s=>`<span class="chip ${s[1]?'on':''}">${s[1]?'✓ ':''}${s[0]}</span>`).join("");
+$("#who").innerHTML=`<option value="t">Teacher (teacher1)</option>`+S.students.map(s=>`<option value="${s[0]}">Student: ${s[1]}${S.enr[s[0]]?'':' (not enrolled)'}</option>`).join("");$("#who").value=V.role=="teacher"?"t":V.sid;
+$("#app").innerHTML=(V.msg?`<div class="msg ${V.bad?'bad':''}" role="status">${V.msg}</div>`:"")+`<div class="tabs">${T.map(x=>`<button class="tab ${V.tab==x[0]?'on':''}" onclick="V.tab='${x[0]}';V.msg='';R()">${x[1]}</button>`).join("")}</div>`+(V.role=="teacher"?teacherView():studentView());
+const cv=$("#cv");if(cv&&CVD)draw(cv,CVD.cfg,CVD.tr,CVD.tr.length-1)}
+function setUser(v){if(v=="t")V.role="teacher";else{V.role="student";V.sid=v}V.tab=V.role=="teacher"?"lesson":"work";V.msg="";R()}
+function D(k,v){S.draft[k]=k=="title"?v:+v;R()}
+function pub(){say(API.publish(actor(),S.draft),"Published lesson r"+S.revs.length+". Students now see this revision.");R()}
+function enr(id,on){say(API.enroll(actor(),id,on),"Roster updated.");R()}
+function add(t){S.prog[V.sid].push(t=="exec"?{type:"exec"}:{type:t,...BLK[t].def});V.msg="";R()}
+function del(i){S.prog[V.sid].splice(i,1);R()}
+function P(i,k,v){S.prog[V.sid][i][k]=v===""?NaN:+v}
+function ex(n){S.prog[V.sid]=n==1?[{type:"move",cm:150},{type:"turn",deg:90}]:[{type:"until_near",thr:15},{type:"turn",deg:90}];V.msg="Example loaded. Press Run.";V.bad=false;R()}
+function doRun(){const res=API.run(actor(),S.prog[V.sid]);say(res,"Run finished. Check the result, then submit when you are happy.");R();if(res.ok)play()}
+function doSub(){const res=API.submit(actor());say(res,res.dup?"Same run already submitted. No duplicate was created ("+(res.att&&res.att.id)+").":"Attempt submitted and pinned to lesson r"+(res.att&&res.att.run.rev)+".");R()}
+function sneak(){say(API.run({role:"student",id:V.sid},[{type:"move",cm:10}]),"");R()}
+function sneakRel(){say(API.release(actor(),S.atts[0]?S.atts[0].id:"A1"),"");R()}
+function rev(id){const res=API.review(actor(),id,parseInt($("#cs").value,10),$("#nt").value,$("#why")?$("#why").value:"");say(res,"Review saved.");R()}
+function rel(id){say(API.release(actor(),id),"Grade released. The student can now see it.");R()}
+R();
+</script></body></html>
